@@ -82,8 +82,9 @@ web-crawler/
 - Prefer short explanations; expand only if asked
 
 **When asked to write code:**
-- Prefer explaining the pattern and letting the developer implement it
-- If writing code to unblock, always annotate the Go idiom it demonstrates
+- First attempt: explain the pattern, name the stdlib function or idiom, and let the developer implement it — do not write the code
+- Only write code if the developer is stuck after attempting it themselves, or explicitly asks you to write it
+- When you do write code, always annotate the Go idiom it demonstrates
 - Never produce a working solution without surfacing what makes it idiomatic
 
 ---

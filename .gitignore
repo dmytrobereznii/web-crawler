@@ -27,6 +27,7 @@ go.work.sum
 .vscode/
 *.swp
 *.swo
+.http/
 
 # OS
 .DS_Store

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/google/uuid"
 )
 
 type getCrawlResponse struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
+	ID     string              `json:"id"`
+	Status crawler.CrawlStatus `json:"status"`
 }
 
 func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +24,7 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	resp := getCrawlResponse{
 		ID:     id.String(),
-		Status: "ok",
+		Status: crawler.CrawlStatusPending,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error().Err(err).Msg("failed to encode response")

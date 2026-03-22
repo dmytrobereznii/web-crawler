@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	h := api.NewHandler(logger)
 

@@ -1,19 +1,24 @@
 package main
 
 import (
-	"log"
 	"net/http"
+	"os"
+
+	"github.com/rs/zerolog"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
 )
 
 func main() {
-	h := api.NewHandler()
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
+	h := api.NewHandler(logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)
+	mux.HandleFunc("GET /crawls/{id}", h.GetCrawl)
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("failed to start server")
 	}
 }

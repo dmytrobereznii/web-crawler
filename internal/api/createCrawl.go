@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 
+	"github.com/dmytrobereznii/web-crawler/internal/crawler"
+	"github.com/dmytrobereznii/web-crawler/internal/store"
 	"github.com/google/uuid"
 )
 
@@ -37,11 +40,24 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := uuid.New()
+	crawl := crawler.Crawl{
+		URL:    request.URL,
+		ID:     uuid.New(),
+		Status: crawler.CrawlStatusPending,
+	}
+
+	err = h.store.Save(crawl)
+	if errors.Is(err, store.ErrAlreadyExists) {
+		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, err.Error())
+		return
+	} else if err != nil {
+		writeErrorResponse(w, h.logger, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(createCrawlResponse{ID: id.String()}); err != nil {
+	if err := json.NewEncoder(w).Encode(createCrawlResponse{ID: crawl.ID.String()}); err != nil {
 		h.logger.Error().Err(err).Msg("failed to encode response")
 	}
 }

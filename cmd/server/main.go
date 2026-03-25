@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/dmytrobereznii/web-crawler/internal/store"
 	"github.com/rs/zerolog"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
@@ -11,8 +12,9 @@ import (
 
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	crawlStore := store.NewCrawlStore()
 
-	h := api.NewHandler(logger)
+	h := api.NewHandler(logger, crawlStore)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)

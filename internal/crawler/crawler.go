@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -16,7 +17,7 @@ type Crawler struct {
 }
 
 type fetcher interface {
-	Fetch(u *url.URL) (int, error)
+	Fetch(u *url.URL) (statusCode int, duration time.Duration, err error)
 }
 
 func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher) *Crawler {
@@ -37,12 +38,12 @@ func (c *Crawler) Run(ctx context.Context) {
 			defer wg.Done()
 
 			for u := range c.frontier {
-				sc, err := c.fetcher.Fetch(u)
+				sc, dur, err := c.fetcher.Fetch(u)
 				if err != nil {
-					c.logger.Error().Err(err).Str("url", u.String()).Int("code", sc).Msg("failed to fetch")
+					c.logger.Error().Err(err).Str("url", u.String()).Dur("duration", dur).Int("code", sc).Msg("failed to fetch")
 					continue
 				}
-				c.logger.Info().Str("url", u.String()).Int("code", sc).Msg("fetched")
+				c.logger.Info().Str("url", u.String()).Dur("duration", dur).Int("code", sc).Msg("fetched")
 			}
 		}()
 	}

@@ -16,12 +16,14 @@ func NewFetcher() *Fetcher {
 	}
 }
 
-func (f *Fetcher) Fetch(u *url.URL) (int, error) {
+func (f *Fetcher) Fetch(u *url.URL) (int, time.Duration, error) {
+	start := time.Now()
 	resp, err := f.client.Get(u.String())
+	dur := time.Since(start)
 	if err != nil {
-		return 0, err
+		return 0, dur, err
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode, nil
+	return resp.StatusCode, dur, nil
 }

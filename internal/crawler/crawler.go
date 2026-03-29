@@ -40,17 +40,21 @@ func (c *Crawler) Run(ctx context.Context) {
 				sc, err := c.fetcher.Fetch(u)
 				if err != nil {
 					c.logger.Error().Err(err).Str("url", u.String()).Int("code", sc).Msg("failed to fetch")
+					continue
 				}
 				c.logger.Info().Str("url", u.String()).Int("code", sc).Msg("fetched")
 			}
 		}()
 	}
 
-	<-ctx.Done() //TODO: cancel after 5s
+	<-ctx.Done()
 	close(c.frontier)
 	wg.Wait()
 }
 
-func (c *Crawler) Submit(u *url.URL) {
-	c.frontier <- u
+func (c *Crawler) Submit(ctx context.Context, u *url.URL) {
+	select {
+	case c.frontier <- u:
+	case <-ctx.Done():
+	}
 }

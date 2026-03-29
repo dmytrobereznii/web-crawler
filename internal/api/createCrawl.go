@@ -55,7 +55,7 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.crawler.Submit(u)
+	h.crawler.Submit(r.Context(), u)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

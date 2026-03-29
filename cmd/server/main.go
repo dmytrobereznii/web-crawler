@@ -28,11 +28,9 @@ func main() {
 	workersCount, err := strconv.Atoi(workersCountS)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to get env variable WORKERS_COUNT")
-		return
 	}
 	if workersCount < 1 {
-		logger.Fatal().Err(err).Msg("WORKERS_COUNT must be greater than zero")
-		return
+		logger.Fatal().Msg("WORKERS_COUNT must be greater than zero")
 	}
 
 	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher())

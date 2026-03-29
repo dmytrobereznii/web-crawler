@@ -7,14 +7,16 @@ import (
 )
 
 type Handler struct {
-	logger zerolog.Logger
-	store  crawlStore
+	logger  zerolog.Logger
+	store   crawlStore
+	crawler *crawler.Crawler
 }
 
-func NewHandler(logger zerolog.Logger, store crawlStore) *Handler {
+func NewHandler(logger zerolog.Logger, store crawlStore, crawler *crawler.Crawler) *Handler {
 	return &Handler{
-		logger: logger,
-		store:  store,
+		logger:  logger,
+		store:   store,
+		crawler: crawler,
 	}
 }
 

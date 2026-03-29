@@ -41,7 +41,7 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	crawl := crawler.Crawl{
-		URL:    request.URL,
+		URL:    u,
 		ID:     uuid.New(),
 		Status: crawler.CrawlStatusPending,
 	}
@@ -54,6 +54,8 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 		writeErrorResponse(w, h.logger, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	h.crawler.Submit(u)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

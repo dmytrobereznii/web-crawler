@@ -1,13 +1,15 @@
 package crawler
 
 import (
+	"net/url"
+
 	"github.com/google/uuid"
 )
 
 type Crawl struct {
 	ID     uuid.UUID
 	Status CrawlStatus
-	URL    string
+	URL    *url.URL
 }
 
 type CrawlStatus string

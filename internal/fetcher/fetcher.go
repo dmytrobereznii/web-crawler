@@ -3,6 +3,7 @@ package fetcher
 import (
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type Fetcher struct {
@@ -11,7 +12,7 @@ type Fetcher struct {
 
 func NewFetcher() *Fetcher {
 	return &Fetcher{
-		client: &http.Client{},
+		client: &http.Client{Timeout: 5 * time.Second},
 	}
 }
 

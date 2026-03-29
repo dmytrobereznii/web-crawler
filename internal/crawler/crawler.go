@@ -2,19 +2,28 @@ package crawler
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"sync"
+
+	"github.com/rs/zerolog"
 )
 
 type Crawler struct {
+	logger       zerolog.Logger
 	frontier     chan *url.URL
+	fetcher      fetcher
 	workersCount int
 }
 
-func NewCrawler(workersCount int) *Crawler {
+type fetcher interface {
+	Fetch(u *url.URL) (int, error)
+}
+
+func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher) *Crawler {
 	return &Crawler{
+		logger:       logger,
 		frontier:     make(chan *url.URL),
+		fetcher:      fetcher,
 		workersCount: workersCount,
 	}
 }
@@ -27,8 +36,12 @@ func (c *Crawler) Run(ctx context.Context) {
 		go func() {
 			defer wg.Done()
 
-			for v := range c.frontier {
-				fmt.Println(v)
+			for u := range c.frontier {
+				sc, err := c.fetcher.Fetch(u)
+				if err != nil {
+					c.logger.Error().Err(err).Str("url", u.String()).Int("code", sc).Msg("failed to fetch")
+				}
+				c.logger.Info().Str("url", u.String()).Int("code", sc).Msg("fetched")
 			}
 		}()
 	}

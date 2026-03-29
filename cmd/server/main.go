@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
+	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
 	"github.com/dmytrobereznii/web-crawler/internal/store"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -34,10 +35,10 @@ func main() {
 		return
 	}
 
-	newCrawler := crawler.NewCrawler(workersCount)
-	go newCrawler.Run(context.Background())
+	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher())
+	go c.Run(context.Background())
 
-	h := api.NewHandler(logger, crawlStore, newCrawler)
+	h := api.NewHandler(logger, crawlStore, c)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)

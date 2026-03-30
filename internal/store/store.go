@@ -42,3 +42,15 @@ func (cs *CrawlStore) Save(crawl crawler.Crawl) error {
 	cs.crawls[crawl.ID] = crawl
 	return nil
 }
+
+func (cs *CrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) error {
+	c, ok := cs.crawls[id]
+
+	if !ok {
+		return ErrNotFound
+	}
+
+	c.Status = status
+	cs.crawls[id] = c
+	return nil
+}

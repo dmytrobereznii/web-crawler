@@ -33,7 +33,7 @@ func main() {
 		logger.Fatal().Msg("WORKERS_COUNT must be greater than zero")
 	}
 
-	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher())
+	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)
 	go c.Run(context.Background())
 
 	h := api.NewHandler(logger, crawlStore, c)

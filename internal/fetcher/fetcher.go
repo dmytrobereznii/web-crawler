@@ -53,7 +53,10 @@ loop:
 							continue
 						}
 
-						links = append(links, u.ResolveReference(linkURL))
+						targetURL := u.ResolveReference(linkURL)
+						targetURL.Fragment = ""
+						targetURL.RawFragment = ""
+						links = append(links, targetURL)
 						break
 					}
 					if !more {

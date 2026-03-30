@@ -18,6 +18,7 @@ type Crawler struct {
 	fetcher      fetcher
 	workersCount int
 	store        store
+	visited      sync.Map
 }
 
 type CrawlJob struct {
@@ -90,6 +91,11 @@ func (c *Crawler) Run(ctx context.Context) {
 }
 
 func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
+	_, alreadyVisited := c.visited.LoadOrStore(targetURL.String(), struct{}{})
+	if alreadyVisited {
+		return
+	}
+
 	if !strings.HasPrefix(targetURL.String(), seedURL.String()) {
 		return
 	}

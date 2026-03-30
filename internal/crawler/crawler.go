@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sync"
 	"time"
@@ -24,7 +25,7 @@ type CrawlJob struct {
 }
 
 type fetcher interface {
-	Fetch(u *url.URL) (statusCode int, duration time.Duration, err error)
+	Fetch(u *url.URL) ([]*url.URL, time.Duration, error)
 }
 
 type store interface {
@@ -58,19 +59,21 @@ func (c *Crawler) Run(ctx context.Context) {
 					continue
 				}
 
-				statusCode, dur, err := c.fetcher.Fetch(crawlJob.URL)
+				links, dur, err := c.fetcher.Fetch(crawlJob.URL)
 				if err != nil {
-					logWithID.Error().Err(err).Dur("duration", dur).Int("code", statusCode).Msg("failed to fetch")
+					logWithID.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
 					continue
 				}
 
 				err = c.store.UpdateStatus(crawlJob.ID, CrawlStatusDone)
 				if err != nil {
-					logWithID.Error().Err(err).Dur("duration", dur).Int("code", statusCode).Msg("failed to update status")
+					logWithID.Error().Err(err).Dur("duration", dur).Msg("failed to update status")
 					continue
 				}
 
-				logWithID.Info().Dur("duration", dur).Int("code", statusCode).Msg("fetched")
+				logWithID.Info().Dur("duration", dur).Msg("fetched")
+
+				fmt.Println(len(links))
 			}
 		}()
 	}

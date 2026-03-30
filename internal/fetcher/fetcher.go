@@ -1,7 +1,6 @@
 package fetcher
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,14 +19,16 @@ func NewFetcher() *Fetcher {
 	}
 }
 
-func (f *Fetcher) Fetch(u *url.URL) (int, time.Duration, error) {
+func (f *Fetcher) Fetch(u *url.URL) ([]*url.URL, time.Duration, error) {
 	start := time.Now()
 	resp, err := f.client.Get(u.String())
 	dur := time.Since(start)
 	if err != nil {
-		return 0, dur, err
+		return nil, dur, err
 	}
 	defer resp.Body.Close()
+
+	var links []*url.URL
 
 	z := html.NewTokenizer(resp.Body)
 
@@ -40,14 +41,19 @@ loop:
 			if err = z.Err(); err == io.EOF {
 				break loop
 			}
-			return resp.StatusCode, dur, err
+			return nil, dur, err
 		case html.StartTagToken:
 			tn, _ := z.TagName()
 			if len(tn) == 1 && tn[0] == 'a' {
 				for {
 					k, v, more := z.TagAttr()
 					if string(k) == "href" {
-						fmt.Println(string(v))
+						linkURL, err := url.Parse(string(v))
+						if err != nil {
+							continue
+						}
+
+						links = append(links, u.ResolveReference(linkURL))
 						break
 					}
 					if !more {
@@ -59,5 +65,5 @@ loop:
 		}
 	}
 
-	return resp.StatusCode, dur, nil
+	return links, dur, nil
 }

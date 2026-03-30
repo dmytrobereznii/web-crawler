@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,8 +21,9 @@ type Crawler struct {
 }
 
 type CrawlJob struct {
-	ID  uuid.UUID
-	URL *url.URL
+	ID      uuid.UUID
+	URL     *url.URL
+	SeedURL *url.URL
 }
 
 type fetcher interface {
@@ -35,7 +37,7 @@ type store interface {
 func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher, store store) *Crawler {
 	return &Crawler{
 		logger:       logger,
-		frontier:     make(chan CrawlJob),
+		frontier:     make(chan CrawlJob, 500),
 		fetcher:      fetcher,
 		workersCount: workersCount,
 		store:        store,
@@ -51,27 +53,31 @@ func (c *Crawler) Run(ctx context.Context) {
 			defer wg.Done()
 
 			for crawlJob := range c.frontier {
-				logWithID := c.logger.With().Str("ID", crawlJob.ID.String()).Logger()
+				logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
 
 				err := c.store.UpdateStatus(crawlJob.ID, CrawlStatusInProgress)
 				if err != nil {
-					logWithID.Error().Err(err).Msg("failed to start fetching")
+					logWithIDAndURL.Error().Err(err).Msg("failed to start fetching")
 					continue
 				}
 
 				links, dur, err := c.fetcher.Fetch(crawlJob.URL)
 				if err != nil {
-					logWithID.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
+					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
 					continue
 				}
 
 				err = c.store.UpdateStatus(crawlJob.ID, CrawlStatusDone)
 				if err != nil {
-					logWithID.Error().Err(err).Dur("duration", dur).Msg("failed to update status")
+					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to update status")
 					continue
 				}
 
-				logWithID.Info().Dur("duration", dur).Msg("fetched")
+				logWithIDAndURL.Info().Dur("duration", dur).Msg("fetched")
+
+				for _, link := range links {
+					c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)
+				}
 
 				fmt.Println(len(links))
 			}
@@ -83,9 +89,13 @@ func (c *Crawler) Run(ctx context.Context) {
 	wg.Wait()
 }
 
-func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, u *url.URL) {
+func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
+	if !strings.HasPrefix(targetURL.String(), seedURL.String()) {
+		return
+	}
+
 	select {
-	case c.frontier <- CrawlJob{ID: id, URL: u}:
+	case c.frontier <- CrawlJob{ID: id, URL: targetURL, SeedURL: seedURL}:
 	case <-ctx.Done():
 	}
 }

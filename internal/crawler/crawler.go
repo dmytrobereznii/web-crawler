@@ -50,26 +50,27 @@ func (c *Crawler) Run(ctx context.Context) {
 			defer wg.Done()
 
 			for crawlJob := range c.frontier {
+				logWithID := c.logger.With().Str("ID", crawlJob.ID.String()).Logger()
+
 				err := c.store.UpdateStatus(crawlJob.ID, CrawlStatusInProgress)
 				if err != nil {
-					c.logger.Error().Err(err).Str("ID", crawlJob.ID.String()).Msg("failed to start processing")
+					logWithID.Error().Err(err).Msg("failed to start fetching")
 					continue
 				}
 
 				statusCode, dur, err := c.fetcher.Fetch(crawlJob.URL)
 				if err != nil {
-					// TODO: how to make it shorter?
-					c.logger.Error().Err(err).Str("ID", crawlJob.ID.String()).Dur("duration", dur).Int("code", statusCode).Msg("failed to fetch")
+					logWithID.Error().Err(err).Dur("duration", dur).Int("code", statusCode).Msg("failed to fetch")
 					continue
 				}
 
 				err = c.store.UpdateStatus(crawlJob.ID, CrawlStatusDone)
 				if err != nil {
-					c.logger.Error().Err(err).Str("ID", crawlJob.ID.String()).Dur("duration", dur).Int("code", statusCode).Msg("failed to update status")
+					logWithID.Error().Err(err).Dur("duration", dur).Int("code", statusCode).Msg("failed to update status")
 					continue
 				}
 
-				c.logger.Info().Str("ID", crawlJob.ID.String()).Dur("duration", dur).Int("code", statusCode).Msg("fetched")
+				logWithID.Info().Dur("duration", dur).Int("code", statusCode).Msg("fetched")
 			}
 		}()
 	}

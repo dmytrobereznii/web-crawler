@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -56,21 +55,9 @@ func (c *Crawler) Run(ctx context.Context) {
 			for crawlJob := range c.frontier {
 				logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
 
-				err := c.store.UpdateStatus(crawlJob.ID, CrawlStatusInProgress)
-				if err != nil {
-					logWithIDAndURL.Error().Err(err).Msg("failed to start fetching")
-					continue
-				}
-
 				links, dur, err := c.fetcher.Fetch(crawlJob.URL)
 				if err != nil {
 					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
-					continue
-				}
-
-				err = c.store.UpdateStatus(crawlJob.ID, CrawlStatusDone)
-				if err != nil {
-					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to update status")
 					continue
 				}
 
@@ -79,8 +66,6 @@ func (c *Crawler) Run(ctx context.Context) {
 				for _, link := range links {
 					c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)
 				}
-
-				fmt.Println(len(links))
 			}
 		}()
 	}
@@ -98,6 +83,13 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, 
 
 	if !strings.HasPrefix(targetURL.String(), seedURL.String()) {
 		return
+	}
+
+	if targetURL.String() == seedURL.String() {
+		err := c.store.UpdateStatus(id, CrawlStatusInProgress)
+		if err != nil {
+			return
+		}
 	}
 
 	select {

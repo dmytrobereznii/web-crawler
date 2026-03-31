@@ -35,7 +35,7 @@ type CrawlTracker struct {
 }
 
 type fetcher interface {
-	Fetch(u *url.URL) ([]*url.URL, time.Duration, error)
+	Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Duration, error)
 }
 
 type store interface {
@@ -61,36 +61,51 @@ func (c *Crawler) Run(ctx context.Context) {
 		go func() {
 			defer wg.Done()
 
-			for crawlJob := range c.frontier {
-				val, _ := c.trackers.Load(crawlJob.ID)
-				tracker := val.(*CrawlTracker)
+			for {
+				select {
+				case crawlJob, ok := <-c.frontier:
+					if !ok {
+						return
+					}
 
-				logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
+					val, _ := c.trackers.Load(crawlJob.ID)
+					tracker := val.(*CrawlTracker)
 
-				links, dur, err := c.fetcher.Fetch(crawlJob.URL)
-				if err != nil {
-					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
+					logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
+
+					links, dur, err := c.fetcher.Fetch(ctx, crawlJob.URL)
+					if err != nil {
+						logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
+						tracker.completeWG.Done()
+						continue
+					}
+
+					logWithIDAndURL.Info().Dur("duration", dur).Msg("fetched")
+
+					tracker.totalDuration.Add(dur.Milliseconds())
+					tracker.totalVisits.Add(1)
+
+					for _, link := range links {
+						c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)
+					}
+
 					tracker.completeWG.Done()
-					continue
+				case <-ctx.Done():
+					return
 				}
-
-				logWithIDAndURL.Info().Dur("duration", dur).Msg("fetched")
-
-				tracker.totalDuration.Add(dur.Milliseconds())
-				tracker.totalVisits.Add(1)
-
-				for _, link := range links {
-					c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)
-				}
-
-				tracker.completeWG.Done()
 			}
 		}()
 	}
 
 	<-ctx.Done()
-	close(c.frontier)
 	wg.Wait()
+	close(c.frontier)
+	for job := range c.frontier {
+		val, _ := c.trackers.Load(job.ID)
+		tracker := val.(*CrawlTracker)
+		tracker.completeWG.Done()
+	}
+	c.logger.Debug().Msg("crawler finished")
 }
 
 func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
@@ -124,6 +139,7 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, 
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl result")
 			}
+			c.logger.Debug().Msg("completion goroutine finished")
 		}()
 	}
 

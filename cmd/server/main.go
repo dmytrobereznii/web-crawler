@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
@@ -33,8 +35,11 @@ func main() {
 		logger.Fatal().Msg("WORKERS_COUNT must be greater than zero")
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)
-	go c.Run(context.Background())
+	go c.Run(ctx)
 
 	h := api.NewHandler(logger, crawlStore, c)
 

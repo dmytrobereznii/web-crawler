@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,9 +20,13 @@ func NewFetcher() *Fetcher {
 	}
 }
 
-func (f *Fetcher) Fetch(u *url.URL) ([]*url.URL, time.Duration, error) {
+func (f *Fetcher) Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Duration, error) {
 	start := time.Now()
-	resp, err := f.client.Get(u.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	resp, err := f.client.Do(req)
 	dur := time.Since(start)
 	if err != nil {
 		return nil, dur, err

@@ -54,3 +54,16 @@ func (cs *CrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) err
 	cs.crawls[id] = c
 	return nil
 }
+
+func (cs *CrawlStore) UpdateResult(id uuid.UUID, duration int64, visits int64) error {
+	c, ok := cs.crawls[id]
+
+	if !ok {
+		return ErrNotFound
+	}
+
+	c.Duration = duration
+	c.Visits = visits
+	cs.crawls[id] = c
+	return nil
+}

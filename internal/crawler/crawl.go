@@ -7,9 +7,11 @@ import (
 )
 
 type Crawl struct {
-	ID     uuid.UUID
-	Status CrawlStatus
-	URL    *url.URL
+	ID       uuid.UUID
+	Status   CrawlStatus
+	URL      *url.URL
+	Duration int64
+	Visits   int64
 }
 
 type CrawlStatus string

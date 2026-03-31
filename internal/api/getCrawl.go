@@ -11,8 +11,10 @@ import (
 )
 
 type getCrawlResponse struct {
-	ID     string              `json:"id"`
-	Status crawler.CrawlStatus `json:"status"`
+	ID       string              `json:"id"`
+	Status   crawler.CrawlStatus `json:"status"`
+	Duration int64               `json:"duration"`
+	Visits   int64               `json:"visits"`
 }
 
 func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
@@ -34,8 +36,10 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	resp := getCrawlResponse{
-		ID:     crawl.ID.String(),
-		Status: crawl.Status,
+		ID:       crawl.ID.String(),
+		Status:   crawl.Status,
+		Duration: crawl.Duration,
+		Visits:   crawl.Visits,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error().Err(err).Msg("failed to encode response")

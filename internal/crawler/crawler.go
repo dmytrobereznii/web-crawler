@@ -19,7 +19,7 @@ type Crawler struct {
 	workersCount int
 	store        store
 	visited      sync.Map
-	results      sync.Map
+	trackers     sync.Map
 }
 
 type CrawlJob struct {
@@ -28,9 +28,10 @@ type CrawlJob struct {
 	SeedURL *url.URL
 }
 
-type CrawlResult struct {
+type CrawlTracker struct {
 	totalDuration atomic.Int64
 	totalVisits   atomic.Int64
+	completeWG    *sync.WaitGroup
 }
 
 type fetcher interface {
@@ -60,24 +61,28 @@ func (c *Crawler) Run(ctx context.Context) {
 			defer wg.Done()
 
 			for crawlJob := range c.frontier {
+				val, _ := c.trackers.Load(crawlJob.ID)
+				tracker := val.(*CrawlTracker)
+
 				logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
 
 				links, dur, err := c.fetcher.Fetch(crawlJob.URL)
 				if err != nil {
 					logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
+					tracker.completeWG.Done()
 					continue
 				}
 
 				logWithIDAndURL.Info().Dur("duration", dur).Msg("fetched")
 
-				val, _ := c.results.LoadOrStore(crawlJob.ID, &CrawlResult{})
-				crawlRes := val.(*CrawlResult)
-				crawlRes.totalDuration.Add(dur.Milliseconds())
-				crawlRes.totalVisits.Add(1)
+				tracker.totalDuration.Add(dur.Milliseconds())
+				tracker.totalVisits.Add(1)
 
 				for _, link := range links {
 					c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)
 				}
+
+				tracker.completeWG.Done()
 			}
 		}()
 	}
@@ -97,15 +102,29 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, 
 		return
 	}
 
+	val, _ := c.trackers.LoadOrStore(id, &CrawlTracker{completeWG: &sync.WaitGroup{}})
+	tracker := val.(*CrawlTracker)
+	tracker.completeWG.Add(1)
+
 	if targetURL.String() == seedURL.String() {
 		err := c.store.UpdateStatus(id, CrawlStatusInProgress)
 		if err != nil {
+			c.logger.Error().Err(err).Msg("failed to update status to in-progress")
+			tracker.completeWG.Done()
 			return
 		}
+		go func() {
+			tracker.completeWG.Wait()
+			err = c.store.UpdateStatus(id, CrawlStatusDone)
+			if err != nil {
+				c.logger.Error().Err(err).Msg("failed to update status to done")
+			}
+		}()
 	}
 
 	select {
 	case c.frontier <- CrawlJob{ID: id, URL: targetURL, SeedURL: seedURL}:
 	case <-ctx.Done():
+		tracker.completeWG.Done()
 	}
 }

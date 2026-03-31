@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,12 +19,18 @@ type Crawler struct {
 	workersCount int
 	store        store
 	visited      sync.Map
+	results      sync.Map
 }
 
 type CrawlJob struct {
 	ID      uuid.UUID
 	URL     *url.URL
 	SeedURL *url.URL
+}
+
+type CrawlResult struct {
+	totalDuration atomic.Int64
+	totalVisits   atomic.Int64
 }
 
 type fetcher interface {
@@ -62,6 +69,11 @@ func (c *Crawler) Run(ctx context.Context) {
 				}
 
 				logWithIDAndURL.Info().Dur("duration", dur).Msg("fetched")
+
+				val, _ := c.results.LoadOrStore(crawlJob.ID, &CrawlResult{})
+				crawlRes := val.(*CrawlResult)
+				crawlRes.totalDuration.Add(dur.Milliseconds())
+				crawlRes.totalVisits.Add(1)
 
 				for _, link := range links {
 					c.Submit(ctx, crawlJob.ID, link, crawlJob.SeedURL)

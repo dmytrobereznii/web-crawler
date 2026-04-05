@@ -39,7 +39,6 @@ func main() {
 	defer stop()
 
 	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)
-	go c.Run(ctx)
 
 	h := api.NewHandler(logger, crawlStore, c)
 
@@ -47,7 +46,17 @@ func main() {
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)
 	mux.HandleFunc("GET /crawls/{id}", h.GetCrawl)
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		logger.Fatal().Err(err).Msg("failed to start server")
+	srv := &http.Server{Addr: ":8080", Handler: mux}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("failed to start server")
+		}
+	}()
+
+	c.Run(ctx)
+
+	err = srv.Shutdown(context.Background())
+	if err != nil {
+		return
 	}
 }

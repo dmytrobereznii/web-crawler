@@ -46,7 +46,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)
 	mux.HandleFunc("GET /crawls/{id}", h.GetCrawl)
-	wrappedMux := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(logger)(mux))
+
+	wrappedMux := middleware.Chain(mux, middleware.RequestIDMiddleware, middleware.LoggingMiddleware(logger))
 
 	srv := &http.Server{Addr: ":8080", Handler: wrappedMux}
 	go func() {

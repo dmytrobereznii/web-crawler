@@ -5,22 +5,35 @@ import (
 	"net/url"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
+	"github.com/dmytrobereznii/web-crawler/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
 type Handler struct {
-	logger  zerolog.Logger
-	store   crawlStore
-	crawler crawlSubmitter
+	fallbackLogger zerolog.Logger
+	store          crawlStore
+	crawler        crawlSubmitter
 }
 
 func NewHandler(logger zerolog.Logger, store crawlStore, crawler crawlSubmitter) *Handler {
 	return &Handler{
-		logger:  logger,
-		store:   store,
-		crawler: crawler,
+		fallbackLogger: logger,
+		store:          store,
+		crawler:        crawler,
 	}
+}
+
+func (h *Handler) logger(ctx context.Context) zerolog.Logger {
+	middlewareLogger, ok := middleware.Logger(ctx)
+
+	if !ok {
+		h.fallbackLogger.Error().Msg("Failed to get fallbackLogger from context")
+
+		return h.fallbackLogger
+	}
+
+	return middlewareLogger
 }
 
 type crawlStore interface {

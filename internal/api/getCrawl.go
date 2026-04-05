@@ -19,17 +19,19 @@ type getCrawlResponse struct {
 
 func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("id"))
+	logger := h.logger(r.Context())
+
 	if err != nil {
-		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, err.Error())
+		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
 	crawl, err := h.store.Get(id)
 	if errors.Is(err, store.ErrNotFound) {
-		writeErrorResponse(w, h.logger, http.StatusNotFound, err.Error())
+		writeErrorResponse(w, logger, http.StatusNotFound, err.Error())
 		return
 	} else if err != nil {
-		writeErrorResponse(w, h.logger, http.StatusInternalServerError, err.Error())
+		writeErrorResponse(w, logger, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -42,6 +44,6 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 		Visits:   crawl.Visits,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		h.logger.Error().Err(err).Msg("failed to encode response")
+		logger.Error().Err(err).Msg("failed to encode response")
 	}
 }

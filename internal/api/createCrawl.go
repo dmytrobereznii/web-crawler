@@ -21,22 +21,23 @@ type createCrawlResponse struct {
 
 func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 	var request createCrawlRequest
+	logger := h.logger(r.Context())
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeErrorResponse(w, h.logger, http.StatusBadRequest, err.Error())
+		writeErrorResponse(w, logger, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	u, err := url.ParseRequestURI(request.URL)
 	if err != nil {
-		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, err.Error())
+		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, "Scheme must be 'http' or 'https'")
+		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, "Scheme must be 'http' or 'https'")
 		return
 	}
 	if u.Hostname() == "" {
-		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, "URL must have a hostname")
+		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, "URL must have a hostname")
 		return
 	}
 
@@ -48,10 +49,10 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 
 	err = h.store.Save(crawl)
 	if errors.Is(err, store.ErrAlreadyExists) {
-		writeErrorResponse(w, h.logger, http.StatusUnprocessableEntity, err.Error())
+		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, err.Error())
 		return
 	} else if err != nil {
-		writeErrorResponse(w, h.logger, http.StatusInternalServerError, err.Error())
+		writeErrorResponse(w, logger, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -60,6 +61,6 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(createCrawlResponse{ID: crawl.ID.String()}); err != nil {
-		h.logger.Error().Err(err).Msg("failed to encode response")
+		logger.Error().Err(err).Msg("failed to encode response")
 	}
 }

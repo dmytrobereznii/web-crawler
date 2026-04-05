@@ -10,6 +10,7 @@ import (
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
+	"github.com/dmytrobereznii/web-crawler/internal/middleware"
 	"github.com/dmytrobereznii/web-crawler/internal/store"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -45,10 +46,11 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /crawls", h.CreateCrawl)
 	mux.HandleFunc("GET /crawls/{id}", h.GetCrawl)
+	wrappedMux := middleware.RequestIDMiddleware(middleware.LoggingMiddleware(logger)(mux))
 
-	srv := &http.Server{Addr: ":8080", Handler: mux}
+	srv := &http.Server{Addr: ":8080", Handler: wrappedMux}
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("failed to start server")
 		}
 	}()

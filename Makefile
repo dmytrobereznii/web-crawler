@@ -6,9 +6,6 @@ fmt:
 vet: fmt
 	go vet ./...
 
-lint:
-	golangci-lint run
-
 build: vet
 	go build
 
@@ -17,6 +14,9 @@ go: vet
 
 clean:
 	go clean
+
+lint:
+	golangci-lint run
 
 test:
 	go test -race ./...

@@ -1,11 +1,9 @@
 package api_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
@@ -18,24 +16,6 @@ import (
 type getCrawlResponse struct {
 	ID     string              `json:"id"`
 	Status crawler.CrawlStatus `json:"status"`
-}
-
-type mockCrawler struct{} // implements crawlSubmitter
-
-func (c *mockCrawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
-}
-
-type mockStore struct { // implements crawlStore
-	crawl crawler.Crawl
-	err   error
-}
-
-func (m *mockStore) Get(_ uuid.UUID) (crawler.Crawl, error) {
-	return m.crawl, m.err
-}
-
-func (m *mockStore) Save(_ crawler.Crawl) error {
-	return m.err
 }
 
 func TestHandler_GetCrawl(t *testing.T) {

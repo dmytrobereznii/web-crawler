@@ -19,7 +19,10 @@ lint:
 	golangci-lint run
 
 test:
-	go test ./...
+	go test -v ./...
+
+test-f:
+	go test -v ./internal/fetcher
 
 race:
 	go test -race ./...

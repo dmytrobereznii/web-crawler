@@ -12,7 +12,6 @@ import (
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
 	"github.com/dmytrobereznii/web-crawler/internal/middleware"
 	"github.com/dmytrobereznii/web-crawler/internal/store"
-	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
@@ -20,11 +19,6 @@ import (
 
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-	err := godotenv.Load()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load .env")
-	}
-
 	crawlStore := store.NewCrawlStore()
 
 	workersCountS := os.Getenv("WORKERS_COUNT")

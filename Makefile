@@ -26,3 +26,15 @@ test-c:
 
 race:
 	go test -race ./...
+
+d-rebuild:
+	docker compose up -d --build
+
+d-start:
+	docker compose up -d
+
+d-stop:
+	docker compose down
+
+d-logs:
+	docker compose logs --tail=all -f

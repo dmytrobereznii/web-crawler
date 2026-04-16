@@ -21,8 +21,8 @@ lint:
 test:
 	go test -v ./...
 
-test-f:
-	go test -v ./internal/fetcher
+test-c:
+	go test -v ./internal/crawler
 
 race:
 	go test -race ./...

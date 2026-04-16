@@ -7,6 +7,15 @@ services:
       - WORKERS_COUNT=5
       - DATABASE_URL=postgres://crawler:password@postgres:5432/crawler?sslmode=disable
     depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    image: migrate/migrate
+    command: ["-path", "/migrations", "-database", "postgres://crawler:password@postgres:5432/crawler?sslmode=disable", "up"]
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
       postgres:
         condition: service_healthy
 
@@ -16,6 +25,8 @@ services:
       - POSTGRES_USER=crawler
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=crawler
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

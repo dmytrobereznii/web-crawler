@@ -2,38 +2,51 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
 	"github.com/dmytrobereznii/web-crawler/internal/middleware"
 	"github.com/dmytrobereznii/web-crawler/internal/store"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
 )
 
 func main() {
+	if err := run(); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, os.Getenv("DATABASE_URL"))
+	cfg, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-	defer conn.Close(ctx)
-
-	err = conn.Ping(ctx)
+	cfg.MaxConns = 20
+	cfg.ConnConfig.RuntimeParams["application_name"] = "web-crawler"
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to ping the database: %v\n", err)
-		os.Exit(1)
+		return err
+	}
+	defer pool.Close()
+
+	err = pool.Ping(ctx)
+	if err != nil {
+		return err
 	}
 
 	crawlStore := store.NewCrawlStore()
@@ -41,10 +54,10 @@ func main() {
 	workersCountS := os.Getenv("WORKERS_COUNT")
 	workersCount, err := strconv.Atoi(workersCountS)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to get env variable WORKERS_COUNT")
+		return err
 	}
 	if workersCount < 1 {
-		logger.Fatal().Msg("WORKERS_COUNT must be greater than zero")
+		return errors.New("WORKERS_COUNT must be greater than zero")
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
@@ -62,15 +75,19 @@ func main() {
 
 	srv := &http.Server{Addr: ":8080", Handler: wrappedMux}
 	go func() {
-		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal().Err(err).Msg("failed to start server")
+		if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error().Err(err).Msg("failed to start server")
 		}
 	}()
 
 	c.Run(ctx)
 
-	err = srv.Shutdown(context.Background())
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	err = srv.Shutdown(shutdownCtx)
 	if err != nil {
-		return
+		return fmt.Errorf("shutdown server: %w", err)
 	}
+
+	return nil
 }

@@ -20,7 +20,7 @@ func NewFetcher() *Fetcher {
 	}
 }
 
-func (f *Fetcher) Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Duration, error) {
+func (f *Fetcher) Fetch(ctx context.Context, u url.URL) ([]url.URL, time.Duration, error) {
 	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -33,7 +33,7 @@ func (f *Fetcher) Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Durat
 	}
 	defer resp.Body.Close()
 
-	var links []*url.URL
+	var links []url.URL
 
 	z := html.NewTokenizer(resp.Body)
 
@@ -61,7 +61,7 @@ loop:
 						targetURL := u.ResolveReference(linkURL)
 						targetURL.Fragment = ""
 						targetURL.RawFragment = ""
-						links = append(links, targetURL)
+						links = append(links, *targetURL)
 						break
 					}
 					if !more {

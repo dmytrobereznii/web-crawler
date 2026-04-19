@@ -43,7 +43,7 @@ func TestFetcher_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			foundURLs, _, _ := fetcher.Fetch(context.Background(), srvURL)
+			foundURLs, _, _ := fetcher.Fetch(context.Background(), *srvURL)
 
 			if tc.expected == nil && len(foundURLs) != 0 {
 				t.Errorf("unexpected found URLs: %v", foundURLs)

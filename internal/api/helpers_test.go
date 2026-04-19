@@ -12,7 +12,7 @@ type mockCrawler struct { // implements crawlSubmitter
 	called bool
 }
 
-func (c *mockCrawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
+func (c *mockCrawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, seedURL url.URL) {
 	c.called = true
 }
 

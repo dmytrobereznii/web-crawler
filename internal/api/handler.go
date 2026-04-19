@@ -42,5 +42,5 @@ type crawlStore interface {
 }
 
 type crawlSubmitter interface {
-	Submit(context.Context, uuid.UUID, *url.URL, *url.URL)
+	Submit(context.Context, uuid.UUID, url.URL, url.URL)
 }

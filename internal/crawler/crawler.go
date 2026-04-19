@@ -24,8 +24,8 @@ type Crawler struct {
 
 type CrawlJob struct {
 	ID      uuid.UUID
-	URL     *url.URL
-	SeedURL *url.URL
+	URL     url.URL
+	SeedURL url.URL
 }
 
 type CrawlTracker struct {
@@ -35,7 +35,7 @@ type CrawlTracker struct {
 }
 
 type fetcher interface {
-	Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Duration, error)
+	Fetch(ctx context.Context, u url.URL) ([]url.URL, time.Duration, error)
 }
 
 type store interface {
@@ -108,7 +108,7 @@ func (c *Crawler) Run(ctx context.Context) {
 	c.logger.Debug().Msg("crawler finished")
 }
 
-func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL *url.URL, seedURL *url.URL) {
+func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, seedURL url.URL) {
 	_, alreadyVisited := c.visited.LoadOrStore(targetURL.String(), struct{}{})
 	if alreadyVisited {
 		return

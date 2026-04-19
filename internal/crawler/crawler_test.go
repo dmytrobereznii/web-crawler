@@ -20,7 +20,7 @@ func (s *mockStore) UpdateStatus(id uuid.UUID, status CrawlStatus) error {
 	return nil
 }
 
-func (s *mockStore) UpdateResult(id uuid.UUID, duration int64, visits int64) error {
+func (s *mockStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
 	close(s.done)
 	return nil
 }
@@ -30,16 +30,16 @@ type mockFetcher struct { // implements fetcher
 	visits       int
 }
 
-func (f *mockFetcher) Fetch(ctx context.Context, u *url.URL) ([]*url.URL, time.Duration, error) {
+func (f *mockFetcher) Fetch(ctx context.Context, u url.URL) ([]url.URL, time.Duration, error) {
 	f.visits++
-	var parsedURLs []*url.URL
+	var parsedURLs []url.URL
 	urlsToReturn := f.urlsToReturn[u.String()]
 	for _, v := range urlsToReturn {
 		parsedURL, err := url.Parse(v)
 		if err != nil {
 			panic(err)
 		}
-		parsedURLs = append(parsedURLs, parsedURL)
+		parsedURLs = append(parsedURLs, *parsedURL)
 	}
 	return parsedURLs, time.Duration(123), nil
 }
@@ -76,14 +76,14 @@ func TestCrawler_Submit_Deduplication(t *testing.T) {
 				s,
 			)
 
-			targetURLs := make([]*url.URL, 0, len(tc.targetURLs))
+			targetURLs := make([]url.URL, 0, len(tc.targetURLs))
 			for _, u := range tc.targetURLs {
 				parsedURL, err := url.Parse(u)
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				targetURLs = append(targetURLs, parsedURL)
+				targetURLs = append(targetURLs, *parsedURL)
 			}
 
 			seedURL, err := url.Parse(tc.seedURL)
@@ -92,7 +92,7 @@ func TestCrawler_Submit_Deduplication(t *testing.T) {
 			}
 
 			for _, u := range targetURLs {
-				c.Submit(context.Background(), uuid.New(), u, seedURL)
+				c.Submit(context.Background(), uuid.New(), u, *seedURL)
 			}
 
 			if tc.onFrontier != len(c.frontier) {
@@ -138,7 +138,7 @@ func TestCrawler_Submit_SeedFiltering(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c.Submit(context.Background(), uuid.New(), targetURL, seedURL)
+			c.Submit(context.Background(), uuid.New(), *targetURL, *seedURL)
 
 			if tc.onFrontier != len(c.frontier) {
 				t.Errorf("onFrontier = %d, want %d", len(c.frontier), tc.onFrontier)
@@ -189,7 +189,7 @@ func TestCrawler_Submit_UpdatesStatus(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c.Submit(context.Background(), uuid.New(), targetURL, seedURL)
+			c.Submit(context.Background(), uuid.New(), *targetURL, *seedURL)
 
 			if s.status != tc.expectedStatus {
 				t.Errorf("s.status = %s, want %s", s.status, tc.expectedStatus)
@@ -247,7 +247,7 @@ func TestCrawler_Run_JobsProcessed(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c.Submit(context.Background(), uuid.New(), targetURL, seedURL)
+			c.Submit(context.Background(), uuid.New(), *targetURL, *seedURL)
 
 			select {
 			case <-s.done:

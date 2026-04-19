@@ -21,10 +21,10 @@ type mockStore struct { // implements crawlStore
 	err   error
 }
 
-func (m *mockStore) Get(_ uuid.UUID) (crawler.Crawl, error) {
+func (m *mockStore) Get(_ context.Context, _ uuid.UUID) (crawler.Crawl, error) {
 	return m.crawl, m.err
 }
 
-func (m *mockStore) Save(_ crawler.Crawl) error {
+func (m *mockStore) Save(_ context.Context, _ crawler.Crawl) error {
 	return m.err
 }

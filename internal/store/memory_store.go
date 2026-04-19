@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -23,7 +24,7 @@ var (
 	ErrAlreadyExists = errors.New("crawl already exists")
 )
 
-func (cs *MemoryCrawlStore) Get(id uuid.UUID) (crawler.Crawl, error) {
+func (cs *MemoryCrawlStore) Get(_ context.Context, id uuid.UUID) (crawler.Crawl, error) {
 	c, ok := cs.crawls[id]
 
 	if !ok {
@@ -33,7 +34,7 @@ func (cs *MemoryCrawlStore) Get(id uuid.UUID) (crawler.Crawl, error) {
 	return c, nil
 }
 
-func (cs *MemoryCrawlStore) Save(crawl crawler.Crawl) error {
+func (cs *MemoryCrawlStore) Save(_ context.Context, crawl crawler.Crawl) error {
 	_, ok := cs.crawls[crawl.ID]
 
 	if ok {
@@ -44,7 +45,7 @@ func (cs *MemoryCrawlStore) Save(crawl crawler.Crawl) error {
 	return nil
 }
 
-func (cs *MemoryCrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) error {
+func (cs *MemoryCrawlStore) UpdateStatus(_ context.Context, id uuid.UUID, status crawler.CrawlStatus) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {
@@ -56,7 +57,7 @@ func (cs *MemoryCrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatu
 	return nil
 }
 
-func (cs *MemoryCrawlStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
+func (cs *MemoryCrawlStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {

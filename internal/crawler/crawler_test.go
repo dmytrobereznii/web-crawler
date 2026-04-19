@@ -15,12 +15,12 @@ type mockStore struct { // implements crawlStore
 	done   chan struct{}
 }
 
-func (s *mockStore) UpdateStatus(id uuid.UUID, status CrawlStatus) error {
+func (s *mockStore) UpdateStatus(_ context.Context, id uuid.UUID, status CrawlStatus) error {
 	s.status = status
 	return nil
 }
 
-func (s *mockStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
+func (s *mockStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64) error {
 	close(s.done)
 	return nil
 }

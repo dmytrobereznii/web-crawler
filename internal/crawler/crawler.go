@@ -39,8 +39,8 @@ type fetcher interface {
 }
 
 type store interface {
-	UpdateStatus(id uuid.UUID, status CrawlStatus) error
-	UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error
+	UpdateStatus(context.Context, uuid.UUID, CrawlStatus) error
+	UpdateResult(ctx context.Context, id uuid.UUID, duration time.Duration, visits int64) error
 }
 
 func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher, store store) *Crawler {
@@ -123,7 +123,7 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, s
 	tracker.completeWG.Add(1)
 
 	if targetURL.String() == seedURL.String() {
-		err := c.store.UpdateStatus(id, CrawlStatusInProgress)
+		err := c.store.UpdateStatus(ctx, id, CrawlStatusInProgress)
 		if err != nil {
 			c.logger.Error().Err(err).Msg("failed to update status to in-progress")
 			tracker.completeWG.Done()
@@ -131,11 +131,11 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, s
 		}
 		go func() {
 			tracker.completeWG.Wait()
-			err = c.store.UpdateStatus(id, CrawlStatusDone)
+			err = c.store.UpdateStatus(ctx, id, CrawlStatusDone)
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl status to done")
 			}
-			err = c.store.UpdateResult(id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load())
+			err = c.store.UpdateResult(ctx, id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load())
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl result")
 			}

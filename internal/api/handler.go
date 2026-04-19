@@ -37,8 +37,8 @@ func (h *Handler) logger(ctx context.Context) zerolog.Logger {
 }
 
 type crawlStore interface {
-	Get(uuid.UUID) (crawler.Crawl, error)
-	Save(crawl crawler.Crawl) error
+	Get(context.Context, uuid.UUID) (crawler.Crawl, error)
+	Save(context.Context, crawler.Crawl) error
 }
 
 type crawlSubmitter interface {

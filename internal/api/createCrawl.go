@@ -47,7 +47,7 @@ func (h *Handler) CreateCrawl(w http.ResponseWriter, r *http.Request) {
 		Status: crawler.CrawlStatusPending,
 	}
 
-	err = h.store.Save(crawl)
+	err = h.store.Save(r.Context(), crawl)
 	if errors.Is(err, store.ErrAlreadyExists) {
 		writeErrorResponse(w, logger, http.StatusUnprocessableEntity, err.Error())
 		return

@@ -26,7 +26,7 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	crawl, err := h.store.Get(id)
+	crawl, err := h.store.Get(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		writeErrorResponse(w, logger, http.StatusNotFound, err.Error())
 		return

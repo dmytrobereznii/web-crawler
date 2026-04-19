@@ -50,7 +50,7 @@ func run() error {
 	}
 
 	crawlStore := store.NewMemoryCrawlStore()
-	//crawlStore := store.NewMemoryCrawlStore(pool)
+	//crawlStore := store.NewPostgresCrawlStore(pool)
 
 	workersCountS := os.Getenv("WORKERS_COUNT")
 	workersCount, err := strconv.Atoi(workersCountS)

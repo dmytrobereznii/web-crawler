@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -27,13 +28,13 @@ func TestCrawlStore_Get(t *testing.T) {
 			crawlStore := NewMemoryCrawlStore()
 
 			if d.crawl.ID != uuid.Nil {
-				err := crawlStore.Save(d.crawl)
+				err := crawlStore.Save(context.Background(), d.crawl)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
 
-			res, err := crawlStore.Get(d.id)
+			res, err := crawlStore.Get(context.Background(), d.id)
 
 			if d.err == nil {
 				if err != nil {
@@ -72,13 +73,13 @@ func TestCrawlStore_Save(t *testing.T) {
 			crawlStore := NewMemoryCrawlStore()
 
 			if d.expectedCrawl.ID != uuid.Nil {
-				err = crawlStore.Save(d.expectedCrawl)
+				err = crawlStore.Save(context.Background(), d.expectedCrawl)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
 
-			err = crawlStore.Save(crawler.Crawl{
+			err = crawlStore.Save(context.Background(), crawler.Crawl{
 				ID:     id,
 				Status: crawler.CrawlStatusPending,
 			})
@@ -88,7 +89,7 @@ func TestCrawlStore_Save(t *testing.T) {
 					t.Errorf("unexpected error: got %v, want %v", err, d.err)
 				}
 
-				res, err := crawlStore.Get(d.id)
+				res, err := crawlStore.Get(context.Background(), d.id)
 				if err != nil {
 					t.Errorf("unexpected error: got %v, want %v", err, d.err)
 				}

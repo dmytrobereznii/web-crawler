@@ -20,6 +20,7 @@ type Crawler struct {
 	store        store
 	visited      sync.Map
 	trackers     sync.Map
+	ctx          context.Context
 }
 
 type CrawlJob struct {
@@ -50,10 +51,12 @@ func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher, store 
 		fetcher:      fetcher,
 		workersCount: workersCount,
 		store:        store,
+		ctx:          context.Background(),
 	}
 }
 
 func (c *Crawler) Run(ctx context.Context) {
+	c.ctx = ctx
 	var wg sync.WaitGroup
 
 	for i := 0; i < c.workersCount; i++ {
@@ -131,11 +134,11 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, s
 		}
 		go func() {
 			tracker.completeWG.Wait()
-			err = c.store.UpdateStatus(ctx, id, CrawlStatusDone)
+			err = c.store.UpdateStatus(c.ctx, id, CrawlStatusDone)
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl status to done")
 			}
-			err = c.store.UpdateResult(ctx, id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load())
+			err = c.store.UpdateResult(c.ctx, id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load())
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl result")
 			}

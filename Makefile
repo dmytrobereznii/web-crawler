@@ -36,7 +36,7 @@ up:
 down:
 	docker compose down -v
 
-up-build: down
+up-build: #down
 	docker compose up -d --build
 
 d-logs:

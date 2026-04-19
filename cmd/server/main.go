@@ -49,8 +49,8 @@ func run() error {
 		return err
 	}
 
-	crawlStore := store.NewMemoryCrawlStore()
-	//crawlStore := store.NewPostgresCrawlStore(pool)
+	//crawlStore := store.NewMemoryCrawlStore()
+	crawlStore := store.NewPostgresCrawlStore(pool)
 
 	workersCountS := os.Getenv("WORKERS_COUNT")
 	workersCount, err := strconv.Atoi(workersCountS)

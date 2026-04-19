@@ -24,7 +24,7 @@ func TestCrawlStore_Get(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			crawlStore := NewCrawlStore()
+			crawlStore := NewMemoryCrawlStore()
 
 			if d.crawl.ID != uuid.Nil {
 				err := crawlStore.Save(d.crawl)
@@ -69,7 +69,7 @@ func TestCrawlStore_Save(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			var err error
-			crawlStore := NewCrawlStore()
+			crawlStore := NewMemoryCrawlStore()
 
 			if d.expectedCrawl.ID != uuid.Nil {
 				err = crawlStore.Save(d.expectedCrawl)

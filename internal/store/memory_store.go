@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type CrawlStore struct {
+type MemoryCrawlStore struct {
 	crawls map[uuid.UUID]crawler.Crawl
 }
 
-func NewCrawlStore() *CrawlStore {
-	return &CrawlStore{
+func NewMemoryCrawlStore() *MemoryCrawlStore {
+	return &MemoryCrawlStore{
 		crawls: make(map[uuid.UUID]crawler.Crawl),
 	}
 }
@@ -23,7 +23,7 @@ var (
 	ErrAlreadyExists = errors.New("crawl already exists")
 )
 
-func (cs *CrawlStore) Get(id uuid.UUID) (crawler.Crawl, error) {
+func (cs *MemoryCrawlStore) Get(id uuid.UUID) (crawler.Crawl, error) {
 	c, ok := cs.crawls[id]
 
 	if !ok {
@@ -33,7 +33,7 @@ func (cs *CrawlStore) Get(id uuid.UUID) (crawler.Crawl, error) {
 	return c, nil
 }
 
-func (cs *CrawlStore) Save(crawl crawler.Crawl) error {
+func (cs *MemoryCrawlStore) Save(crawl crawler.Crawl) error {
 	_, ok := cs.crawls[crawl.ID]
 
 	if ok {
@@ -44,7 +44,7 @@ func (cs *CrawlStore) Save(crawl crawler.Crawl) error {
 	return nil
 }
 
-func (cs *CrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) error {
+func (cs *MemoryCrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {
@@ -56,7 +56,7 @@ func (cs *CrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) err
 	return nil
 }
 
-func (cs *CrawlStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
+func (cs *MemoryCrawlStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
 	"github.com/dmytrobereznii/web-crawler/internal/middleware"
 	"github.com/dmytrobereznii/web-crawler/internal/store"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 
 	"github.com/dmytrobereznii/web-crawler/internal/api"
@@ -19,6 +21,21 @@ import (
 
 func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(ctx)
+
+	err = conn.Ping(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to ping the database: %v\n", err)
+		os.Exit(1)
+	}
+
 	crawlStore := store.NewCrawlStore()
 
 	workersCountS := os.Getenv("WORKERS_COUNT")
@@ -30,7 +47,7 @@ func main() {
 		logger.Fatal().Msg("WORKERS_COUNT must be greater than zero")
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)

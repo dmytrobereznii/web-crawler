@@ -9,7 +9,7 @@ import (
 type Crawl struct {
 	ID       uuid.UUID
 	Status   CrawlStatus
-	URL      *url.URL
+	URL      *url.URL // TODO: no need for pointer
 	Duration int64
 	Visits   int64
 }

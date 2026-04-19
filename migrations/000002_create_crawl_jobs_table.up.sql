@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS crawl_jobs(
     duration interval NOT NULL,
     visits int NOT NULL,
     created_at timestamptz NOT NULL,
-    completed_at timestamptz NOT NULL
+    completed_at timestamptz
 );

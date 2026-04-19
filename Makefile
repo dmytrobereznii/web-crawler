@@ -27,14 +27,17 @@ test-c:
 race:
 	go test -race ./...
 
-d-build:
-	docker compose up -d --build
+create-migration:
+	docker run --rm -v $(CURDIR)/migrations:/migrations migrate/migrate create -ext sql -dir /migrations -seq $(c)
 
-d-up:
+up:
 	docker compose up -d
 
-d-down:
+down:
 	docker compose down -v
+
+up-build: down
+	docker compose up -d --build
 
 d-logs:
 	docker compose logs --tail=all -f

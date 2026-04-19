@@ -40,7 +40,7 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 	resp := getCrawlResponse{
 		ID:       crawl.ID.String(),
 		Status:   crawl.Status,
-		Duration: crawl.Duration,
+		Duration: crawl.Duration.Milliseconds(),
 		Visits:   crawl.Visits,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {

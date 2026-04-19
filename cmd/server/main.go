@@ -50,6 +50,7 @@ func run() error {
 	}
 
 	crawlStore := store.NewCrawlStore()
+	//crawlStore := store.NewCrawlStore(pool)
 
 	workersCountS := os.Getenv("WORKERS_COUNT")
 	workersCount, err := strconv.Atoi(workersCountS)

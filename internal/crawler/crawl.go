@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -9,8 +10,8 @@ import (
 type Crawl struct {
 	ID       uuid.UUID
 	Status   CrawlStatus
-	URL      *url.URL // TODO: no need for pointer
-	Duration int64
+	URL      url.URL
+	Duration time.Duration
 	Visits   int64
 }
 

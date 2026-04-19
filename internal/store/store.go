@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"time"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func (cs *CrawlStore) UpdateStatus(id uuid.UUID, status crawler.CrawlStatus) err
 	return nil
 }
 
-func (cs *CrawlStore) UpdateResult(id uuid.UUID, duration int64, visits int64) error {
+func (cs *CrawlStore) UpdateResult(id uuid.UUID, duration time.Duration, visits int64) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {

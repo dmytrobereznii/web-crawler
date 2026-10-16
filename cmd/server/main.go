@@ -64,7 +64,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)
+	c := crawler.NewCrawler(logger, workersCount, 0, fetcher.NewFetcher(), crawlStore)
 
 	h := api.NewHandler(logger, crawlStore, c)
 

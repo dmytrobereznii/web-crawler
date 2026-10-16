@@ -17,6 +17,7 @@ type Crawler struct {
 	frontier     chan CrawlJob
 	fetcher      fetcher
 	workersCount int
+	maxPages     int
 	store        store
 	visited      sync.Map
 	trackers     sync.Map
@@ -32,7 +33,26 @@ type CrawlJob struct {
 type CrawlTracker struct {
 	totalDuration atomic.Int64
 	totalVisits   atomic.Int64
+	reserved      atomic.Int64 // fetch slots claimed; totalVisits <= reserved <= maxPages
+	limitReached  atomic.Bool
 	completeWG    *sync.WaitGroup
+}
+
+// tryReserve claims one fetch slot if fewer than limit are taken.
+// Compare-and-swap loop: if another worker wins the race, CompareAndSwap
+// fails, we reload and re-check, so the count can never pass limit.
+func (t *CrawlTracker) tryReserve(limit int64) bool {
+	for cur := t.reserved.Load(); cur < limit; cur = t.reserved.Load() {
+		if t.reserved.CompareAndSwap(cur, cur+1) {
+			return true
+		}
+	}
+	return false
+}
+
+// release returns a slot after a failed fetch (failed fetches do not count).
+func (t *CrawlTracker) release() {
+	t.reserved.Add(-1)
 }
 
 type fetcher interface {
@@ -44,14 +64,29 @@ type store interface {
 	UpdateResult(ctx context.Context, id uuid.UUID, duration time.Duration, visits int64, limitReached bool) error
 }
 
-func NewCrawler(logger zerolog.Logger, workersCount int, fetcher fetcher, store store) *Crawler {
+// NewCrawler builds a crawler. maxPages caps fetched pages per crawl; 0 means unlimited.
+func NewCrawler(logger zerolog.Logger, workersCount int, maxPages int, fetcher fetcher, store store) *Crawler {
 	return &Crawler{
 		logger:       logger,
 		frontier:     make(chan CrawlJob, 500),
 		fetcher:      fetcher,
 		workersCount: workersCount,
+		maxPages:     maxPages,
 		store:        store,
 		ctx:          context.Background(),
+	}
+}
+
+func (c *Crawler) limited() bool {
+	return c.maxPages > 0
+}
+
+// markLimitReached records that a URL went unfetched because of the cap.
+// CompareAndSwap(false, true) succeeds for exactly one caller, so only
+// the winner logs and the line is emitted once per crawl without a mutex.
+func (c *Crawler) markLimitReached(id uuid.UUID, tracker *CrawlTracker) {
+	if tracker.limitReached.CompareAndSwap(false, true) {
+		c.logger.Info().Str("ID", id.String()).Int("max_pages", c.maxPages).Msg("max pages per crawl reached")
 	}
 }
 
@@ -76,9 +111,18 @@ func (c *Crawler) Run(ctx context.Context) {
 
 					logWithIDAndURL := c.logger.With().Str("ID", crawlJob.ID.String()).Str("URL", crawlJob.URL.String()).Logger()
 
+					if c.limited() && !tracker.tryReserve(int64(c.maxPages)) {
+						c.markLimitReached(crawlJob.ID, tracker)
+						tracker.completeWG.Done()
+						continue
+					}
+
 					links, dur, err := c.fetcher.Fetch(ctx, crawlJob.URL)
 					if err != nil {
 						logWithIDAndURL.Error().Err(err).Dur("duration", dur).Msg("failed to fetch")
+						if c.limited() {
+							tracker.release()
+						}
 						tracker.completeWG.Done()
 						continue
 					}
@@ -123,6 +167,15 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, s
 
 	val, _ := c.trackers.LoadOrStore(id, &CrawlTracker{completeWG: &sync.WaitGroup{}})
 	tracker := val.(*CrawlTracker)
+
+	// Drop before completeWG.Add: a dropped URL never joins the WaitGroup, so
+	// there is no Done to pair. It sits after dedup and the prefix filter so
+	// only in-scope, unvisited URLs count toward limit_reached.
+	if c.limited() && tracker.totalVisits.Load() >= int64(c.maxPages) {
+		c.markLimitReached(id, tracker)
+		return
+	}
+
 	tracker.completeWG.Add(1)
 
 	if targetURL.String() == seedURL.String() {
@@ -138,7 +191,7 @@ func (c *Crawler) Submit(ctx context.Context, id uuid.UUID, targetURL url.URL, s
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl status to done")
 			}
-			err = c.store.UpdateResult(c.ctx, id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load(), false)
+			err = c.store.UpdateResult(c.ctx, id, time.Duration(tracker.totalDuration.Load()), tracker.totalVisits.Load(), tracker.limitReached.Load())
 			if err != nil {
 				c.logger.Error().Err(err).Msg("failed to update crawl result")
 			}

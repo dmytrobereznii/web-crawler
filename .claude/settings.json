@@ -1,0 +1,17 @@
+{
+  "enabledPlugins": {
+    "sdd-engineering@dev-digest-ai-marketplace": true,
+    "engineering-paved-path@dev-digest-ai-marketplace": true,
+    "research-tools@dev-digest-ai-marketplace": true,
+    "architecture-review@dev-digest-ai-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "dev-digest-ai-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "dmytrobereznii/dev-digest-ai-marketplace",
+        "ref": "sdd-engineering--v1.0.0"
+      }
+    }
+  }
+}

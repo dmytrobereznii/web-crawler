@@ -15,6 +15,9 @@ type getCrawlResponse struct {
 	Status   crawler.CrawlStatus `json:"status"`
 	Duration int64               `json:"duration"`
 	Visits   int64               `json:"visits"`
+	// No omitempty: a false value must still be serialized so clients can
+	// tell "limit not reached" from "field missing".
+	LimitReached bool `json:"limit_reached"`
 }
 
 func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +45,8 @@ func (h *Handler) GetCrawl(w http.ResponseWriter, r *http.Request) {
 		Status:   crawl.Status,
 		Duration: crawl.Duration.Milliseconds(),
 		Visits:   crawl.Visits,
+
+		LimitReached: crawl.LimitReached,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		logger.Error().Err(err).Msg("failed to encode response")

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dmytrobereznii/web-crawler/internal/config"
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/dmytrobereznii/web-crawler/internal/fetcher"
 	"github.com/dmytrobereznii/web-crawler/internal/middleware"
@@ -30,6 +31,12 @@ func main() {
 
 func run() error {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	// Parse first: a bad value must fail fast, without needing Postgres.
+	maxPages, err := config.ParseMaxPages(os.Getenv("MAX_PAGES_PER_CRAWL"))
+	if err != nil {
+		return err
+	}
 
 	ctx := context.Background()
 	cfg, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
@@ -64,7 +71,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	c := crawler.NewCrawler(logger, workersCount, fetcher.NewFetcher(), crawlStore)
+	c := crawler.NewCrawler(logger, workersCount, maxPages, fetcher.NewFetcher(), crawlStore)
 
 	h := api.NewHandler(logger, crawlStore, c)
 

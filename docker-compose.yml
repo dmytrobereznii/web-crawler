@@ -5,6 +5,7 @@ services:
       - "8080:8080"
     environment:
       - WORKERS_COUNT=5
+      - MAX_PAGES_PER_CRAWL=${MAX_PAGES_PER_CRAWL:-}
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable
     depends_on:
       migrate:

@@ -27,11 +27,12 @@ func (cs *PostgresCrawlStore) Get(ctx context.Context, id uuid.UUID) (crawler.Cr
 	var status, urlStr string
 	var duration pgtype.Interval
 	var visits int64
+	var limitReached bool
 
 	err := cs.pool.QueryRow(ctx,
-		"SELECT status, url, duration, visits FROM crawl_jobs WHERE id = $1",
+		"SELECT status, url, duration, visits, limit_reached FROM crawl_jobs WHERE id = $1",
 		id,
-	).Scan(&status, &urlStr, &duration, &visits)
+	).Scan(&status, &urlStr, &duration, &visits, &limitReached)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return crawler.Crawl{}, ErrNotFound
 	}
@@ -45,11 +46,12 @@ func (cs *PostgresCrawlStore) Get(ctx context.Context, id uuid.UUID) (crawler.Cr
 	}
 
 	return crawler.Crawl{
-		ID:       id,
-		Status:   crawler.CrawlStatus(status),
-		URL:      *parsedURL,
-		Duration: time.Duration(duration.Microseconds) * time.Microsecond,
-		Visits:   visits,
+		ID:           id,
+		Status:       crawler.CrawlStatus(status),
+		URL:          *parsedURL,
+		Duration:     time.Duration(duration.Microseconds) * time.Microsecond,
+		Visits:       visits,
+		LimitReached: limitReached,
 	}, nil
 }
 
@@ -90,15 +92,15 @@ func (cs *PostgresCrawlStore) UpdateStatus(ctx context.Context, id uuid.UUID, st
 	return nil
 }
 
-func (cs *PostgresCrawlStore) UpdateResult(ctx context.Context, id uuid.UUID, duration time.Duration, visits int64) error {
+func (cs *PostgresCrawlStore) UpdateResult(ctx context.Context, id uuid.UUID, duration time.Duration, visits int64, limitReached bool) error {
 	interval := pgtype.Interval{
 		Microseconds: duration.Microseconds(),
 		Valid:        true,
 	}
 
 	tag, err := cs.pool.Exec(ctx,
-		"UPDATE crawl_jobs SET duration = $1, visits = $2 WHERE id = $3",
-		interval, visits, id,
+		"UPDATE crawl_jobs SET duration = $1, visits = $2, limit_reached = $3 WHERE id = $4",
+		interval, visits, limitReached, id,
 	)
 	if err != nil {
 		return fmt.Errorf("update result: %w", err)

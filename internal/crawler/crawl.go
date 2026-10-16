@@ -8,11 +8,12 @@ import (
 )
 
 type Crawl struct {
-	ID       uuid.UUID
-	Status   CrawlStatus
-	URL      url.URL
-	Duration time.Duration
-	Visits   int64
+	ID           uuid.UUID
+	Status       CrawlStatus
+	URL          url.URL
+	Duration     time.Duration
+	Visits       int64
+	LimitReached bool
 }
 
 type CrawlStatus string

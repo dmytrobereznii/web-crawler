@@ -57,7 +57,7 @@ func (cs *MemoryCrawlStore) UpdateStatus(_ context.Context, id uuid.UUID, status
 	return nil
 }
 
-func (cs *MemoryCrawlStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64) error {
+func (cs *MemoryCrawlStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64, limitReached bool) error {
 	c, ok := cs.crawls[id]
 
 	if !ok {
@@ -66,6 +66,7 @@ func (cs *MemoryCrawlStore) UpdateResult(_ context.Context, id uuid.UUID, durati
 
 	c.Duration = duration
 	c.Visits = visits
+	c.LimitReached = limitReached
 	cs.crawls[id] = c
 	return nil
 }

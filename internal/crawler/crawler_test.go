@@ -20,7 +20,7 @@ func (s *mockStore) UpdateStatus(_ context.Context, id uuid.UUID, status CrawlSt
 	return nil
 }
 
-func (s *mockStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64) error {
+func (s *mockStore) UpdateResult(_ context.Context, id uuid.UUID, duration time.Duration, visits int64, limitReached bool) error {
 	close(s.done)
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/dmytrobereznii/web-crawler/internal/crawler"
 	"github.com/google/uuid"
@@ -49,6 +50,53 @@ func TestCrawlStore_Get(t *testing.T) {
 				if !errors.Is(err, d.err) || err == nil {
 					t.Errorf("unexpected error: got %v; want %v", err, d.err)
 				}
+			}
+		})
+	}
+}
+
+func TestCrawlStore_UpdateResult(t *testing.T) {
+	id := uuid.New()
+
+	data := []struct {
+		name         string
+		saved        bool
+		updateID     uuid.UUID
+		update       bool
+		limitReached bool
+		want         bool
+		err          error
+	}{
+		{"limit_reached_true_persisted", true, id, true, true, true, nil},
+		{"limit_reached_false_persisted", true, id, true, false, false, nil},
+		{"unknown_id_returns_ErrNotFound", true, uuid.New(), true, true, false, ErrNotFound},
+		{"saved_crawl_reads_false", true, id, false, false, false, nil},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			ctx := context.Background()
+			crawlStore := NewMemoryCrawlStore()
+
+			if d.saved {
+				if err := crawlStore.Save(ctx, crawler.Crawl{ID: id}); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if d.update {
+				err := crawlStore.UpdateResult(ctx, d.updateID, time.Second, 3, d.limitReached)
+				if !errors.Is(err, d.err) {
+					t.Fatalf("unexpected error: got %v, want %v", err, d.err)
+				}
+			}
+
+			res, err := crawlStore.Get(ctx, id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.LimitReached != d.want {
+				t.Errorf("unexpected LimitReached: got %v, want %v", res.LimitReached, d.want)
 			}
 		})
 	}

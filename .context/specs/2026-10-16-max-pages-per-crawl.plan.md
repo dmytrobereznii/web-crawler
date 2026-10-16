@@ -115,22 +115,22 @@ Add `- MAX_PAGES_PER_CRAWL=${MAX_PAGES_PER_CRAWL:-}` under `app.environment`, wh
 
 ### 3.1 S1 — Contract and storage
 Files: `internal/crawler/crawl.go`, `internal/crawler/crawler.go` (the `store` interface and the completion call only), `internal/crawler/crawler_test.go` (`mockStore` signature only), `internal/store/memory_store.go`, `internal/store/memory_store_test.go`, `internal/store/postgres.go`, `migrations/000003_add_limit_reached_to_crawl_jobs.{up,down}.sql`. Depends on: nothing.
-- [ ] T1 Add `LimitReached bool` to `Crawl` → AC-5, AC-6 → `TestCrawlStore_UpdateResult` in internal/store/memory_store_test.go
-- [ ] T2 Change `UpdateResult` in all four copies (D5). The completion goroutine passes `false` for now, so the build stays green → AC-5, AC-6 → `TestCrawlStore_UpdateResult`, plus `go build ./...`
-- [ ] T3 `MemoryCrawlStore.UpdateResult` writes `LimitReached`. New table-driven test `TestCrawlStore_UpdateResult` in internal/store/memory_store_test.go, with rows `limit_reached_true_persisted`, `limit_reached_false_persisted`, `unknown_id_returns_ErrNotFound`, `saved_crawl_reads_false` (asserts with `Get`) → AC-5, AC-6 → `TestCrawlStore_UpdateResult`
-- [ ] T4 Migration 000003 up/down (D6) → AC-5, AC-6 → manual check §6 (Postgres)
-- [ ] T5 `PostgresCrawlStore.Get` adds `limit_reached` to SELECT and Scan; `UpdateResult` sets it (D6) → AC-5, AC-6 → manual check §6 (Postgres). The repo has no DB test lane.
+- [x] T1 Add `LimitReached bool` to `Crawl` → AC-5, AC-6 → `TestCrawlStore_UpdateResult` in internal/store/memory_store_test.go
+- [x] T2 Change `UpdateResult` in all four copies (D5). The completion goroutine passes `false` for now, so the build stays green → AC-5, AC-6 → `TestCrawlStore_UpdateResult`, plus `go build ./...`
+- [x] T3 `MemoryCrawlStore.UpdateResult` writes `LimitReached`. New table-driven test `TestCrawlStore_UpdateResult` in internal/store/memory_store_test.go, with rows `limit_reached_true_persisted`, `limit_reached_false_persisted`, `unknown_id_returns_ErrNotFound`, `saved_crawl_reads_false` (asserts with `Get`) → AC-5, AC-6 → `TestCrawlStore_UpdateResult`
+- [x] T4 Migration 000003 up/down (D6) → AC-5, AC-6 → manual check §6 (Postgres)
+- [x] T5 `PostgresCrawlStore.Get` adds `limit_reached` to SELECT and Scan; `UpdateResult` sets it (D6) → AC-5, AC-6 → manual check §6 (Postgres). The repo has no DB test lane.
 
 ### 3.2 S2 — Crawler limit
 Files: `internal/crawler/crawler.go`, `internal/crawler/crawler_test.go`. Depends on: S1.
-- [ ] T6 Make the test doubles race-safe and per-crawl (D8). Existing assertions stay unchanged → AC-9, NFR-3 → `TestCrawler_Run_JobsProcessed` under `make race`
-- [ ] T7 Add the `maxPages` parameter to `NewCrawler` (D1) and pass `0` at the five existing test call sites → AC-1, NFR-3 → `TestCrawler_Run_JobsProcessed`, `TestCrawler_Run_MaxPages/unlimited_fetches_every_page`
-- [ ] T8 `CrawlTracker` gets `reserved atomic.Int64`, `limitReached atomic.Bool`, and the `tryReserve` / `release` / `markLimitReached` helpers (D2, D4) → AC-2, AC-3 → `TestCrawler_Run_MaxPages`
-- [ ] T9 Worker: when limited, reserve before `Fetch`. A failed reservation marks the flag, calls `Done()` and continues. A fetch error releases the slot before `Done()` → AC-2, AC-3, AC-4 → `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/failed_fetch_does_not_count`
-- [ ] T10 `Submit`: add the D3 drop check after the prefix filter and before `completeWG.Add(1)` → AC-3, AC-5, AC-7 → `TestCrawler_Run_MaxPages/limit_one_fetches_only_seed`, `TestCrawler_Run_MaxPages_OtherCrawlsContinue`
-- [ ] T11 Completion goroutine passes `tracker.limitReached.Load()` to `UpdateResult` → AC-5, AC-6 → `TestCrawler_Run_MaxPages` (all rows assert `limitReached`)
-- [ ] T12 CAS winner logs once (D10). Adds no goroutine: if one is added anyway, comment its exit condition → NFR-1, NFR-4 → `TestCrawler_Run_MaxPages_LogsOnce`
-- [ ] T13 Write tests in internal/crawler/crawler_test.go (each waits on `mockStore.done`, then asserts recorded `status == done`, `visits`, fetch count and `limitReached`):
+- [x] T6 Make the test doubles race-safe and per-crawl (D8). Existing assertions stay unchanged → AC-9, NFR-3 → `TestCrawler_Run_JobsProcessed` under `make race`
+- [x] T7 Add the `maxPages` parameter to `NewCrawler` (D1) and pass `0` at the five existing test call sites → AC-1, NFR-3 → `TestCrawler_Run_JobsProcessed`, `TestCrawler_Run_MaxPages/unlimited_fetches_every_page`
+- [x] T8 `CrawlTracker` gets `reserved atomic.Int64`, `limitReached atomic.Bool`, and the `tryReserve` / `release` / `markLimitReached` helpers (D2, D4) → AC-2, AC-3 → `TestCrawler_Run_MaxPages`
+- [x] T9 Worker: when limited, reserve before `Fetch`. A failed reservation marks the flag, calls `Done()` and continues. A fetch error releases the slot before `Done()` → AC-2, AC-3, AC-4 → `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/failed_fetch_does_not_count`
+- [x] T10 `Submit`: add the D3 drop check after the prefix filter and before `completeWG.Add(1)` → AC-3, AC-5, AC-7 → `TestCrawler_Run_MaxPages/limit_one_fetches_only_seed`, `TestCrawler_Run_MaxPages_OtherCrawlsContinue`
+- [x] T11 Completion goroutine passes `tracker.limitReached.Load()` to `UpdateResult` → AC-5, AC-6 → `TestCrawler_Run_MaxPages` (all rows assert `limitReached`)
+- [x] T12 CAS winner logs once (D10). Adds no goroutine: if one is added anyway, comment its exit condition → NFR-1, NFR-4 → `TestCrawler_Run_MaxPages_LogsOnce`
+- [x] T13 Write tests in internal/crawler/crawler_test.go (each waits on `mockStore.done`, then asserts recorded `status == done`, `visits`, fetch count and `limitReached`):
   - `TestCrawler_Run_MaxPages`, table-driven:
     - `unlimited_fetches_every_page` (max 0, 2 workers, 6 pages → 6, false)
     - `cap_holds_with_concurrent_workers` (max 5, 4 workers, seed + 20 children, delay > 0 → visits == 5, fetches == 5, true)
@@ -146,39 +146,39 @@ Files: `internal/crawler/crawler.go`, `internal/crawler/crawler_test.go`. Depend
 
 ### 3.3 S3 — API field
 Files: `internal/api/getCrawl.go`, `internal/api/getCrawl_test.go`. Depends on: S1 (T1).
-- [ ] T14 Add `LimitReached bool \`json:"limit_reached"\`` (no `omitempty`, so the field is always present) to `getCrawlResponse` and map it → AC-5, AC-6 → `TestHandler_GetCrawl`
-- [ ] T15 In the test type, add `LimitReached *bool` (a pointer, so a missing field decodes as `nil`). New rows: `limit_reached_true_returned` and `limit_reached_false_always_present` (asserts non-nil and false) → AC-5, AC-6 → `TestHandler_GetCrawl`
+- [x] T14 Add `LimitReached bool \`json:"limit_reached"\`` (no `omitempty`, so the field is always present) to `getCrawlResponse` and map it → AC-5, AC-6 → `TestHandler_GetCrawl`
+- [x] T15 In the test type, add `LimitReached *bool` (a pointer, so a missing field decodes as `nil`). New rows: `limit_reached_true_returned` and `limit_reached_false_always_present` (asserts non-nil and false) → AC-5, AC-6 → `TestHandler_GetCrawl`
 
 ### 3.4 S4 — Config and wiring
 Files: `internal/config/config.go` (new), `internal/config/config_test.go` (new), `cmd/server/main.go`, `.env.example`, `docker-compose.yml`. T16 and T17 have no dependency; T18 depends on S2 (T7).
-- [ ] T16 `config.ParseMaxPages` (D7) → AC-1, AC-8 → `TestParseMaxPages` in internal/config/config_test.go
-- [ ] T17 `TestParseMaxPages` rows:
+- [x] T16 `config.ParseMaxPages` (D7) → AC-1, AC-8 → `TestParseMaxPages` in internal/config/config_test.go
+- [x] T17 `TestParseMaxPages` rows:
   - accepted: `empty_is_unlimited` (`""` → 0), `positive_is_limit` (`"50"` → 50)
   - rejected: `zero_rejected`, `negative_rejected` (`"-5"`), `non_numeric_rejected` (`"abc"`), `decimal_rejected` (`"10.5"`), `surrounding_space_rejected` (`" 10"`), `overflow_rejected` (`"99999999999999999999"`)
   - every rejected row asserts that `err.Error()` contains `MAX_PAGES_PER_CRAWL`
 
   → AC-8, AC-1 → `TestParseMaxPages`
-- [ ] T18 `run()` parses first, before `pgxpool.ParseConfig`, and passes the value to `NewCrawler` → AC-1, AC-2, AC-8 → manual check §6 (AC-8)
-- [ ] T19 `.env.example` gets `# Max pages fetched per crawl. Empty = no limit; otherwise a positive integer.` followed by `MAX_PAGES_PER_CRAWL=` → NFR-2 → review
-- [ ] T20 Pass the variable through compose (D11) → AC-1, AC-2 → manual check §6 (Postgres)
+- [x] T18 `run()` parses first, before `pgxpool.ParseConfig`, and passes the value to `NewCrawler` → AC-1, AC-2, AC-8 → manual check §6 (AC-8)
+- [x] T19 `.env.example` gets `# Max pages fetched per crawl. Empty = no limit; otherwise a positive integer.` followed by `MAX_PAGES_PER_CRAWL=` → NFR-2 → review
+- [x] T20 Pass the variable through compose (D11) → AC-1, AC-2 → manual check §6 (Postgres)
 
 ## 4. Traceability
 
 | AC | Task | Test | Commit |
 |---|---|---|---|
-| AC-1 | T7, T16, T18, T20 | `TestCrawler_Run_MaxPages/unlimited_fetches_every_page`, `TestCrawler_Run_JobsProcessed`, `TestParseMaxPages/empty_is_unlimited` | — |
-| AC-2 | T8, T9, T18, T20 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/limit_one_fetches_only_seed` | — |
-| AC-3 | T8, T9, T10 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers` (fetch count == N) | — |
-| AC-4 | T9 | `TestCrawler_Run_MaxPages` (every row asserts `status == done`), `/seed_fetch_fails_reports_false` | — |
-| AC-5 | T1–T5, T10, T11, T14, T15 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/failed_fetch_does_not_count`, `TestCrawlStore_UpdateResult/limit_reached_true_persisted`, `TestHandler_GetCrawl/limit_reached_true_returned`, manual Postgres check | — |
-| AC-6 | T1–T5, T11, T14, T15 | `TestCrawler_Run_MaxPages/exact_page_count_reports_false`, `/seed_fetch_fails_reports_false`, `TestCrawlStore_UpdateResult/saved_crawl_reads_false`, `TestHandler_GetCrawl/limit_reached_false_always_present` | — |
-| AC-7 | T10 | `TestCrawler_Run_MaxPages_OtherCrawlsContinue` | — |
-| AC-8 | T16, T17, T18 | `TestParseMaxPages` (rejected rows), manual AC-8 check | — |
-| AC-9 | T6, T13 | `make race` (includes `cap_holds_with_concurrent_workers`) | — |
-| NFR-1 | T12 | `TestCrawler_Run_MaxPages_LogsOnce` | — |
-| NFR-2 | T19 | review of `.env.example` | — |
-| NFR-3 | T6, T7 | existing `TestCrawler_*`, `TestHandler_*`, `TestCrawlStore_*` with unchanged status/visits assertions | — |
-| NFR-4 | T12 | review: no new goroutine, or a documented exit; `make race` | — |
+| AC-1 | T7, T16, T18, T20 | `TestCrawler_Run_MaxPages/unlimited_fetches_every_page`, `TestCrawler_Run_JobsProcessed`, `TestParseMaxPages/empty_is_unlimited` | 68e6afb, 1290c37 |
+| AC-2 | T8, T9, T18, T20 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/limit_one_fetches_only_seed` | 68e6afb, 1290c37 |
+| AC-3 | T8, T9, T10 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers` (fetch count == N) | 68e6afb |
+| AC-4 | T9 | `TestCrawler_Run_MaxPages` (every row asserts `status == done`), `/seed_fetch_fails_reports_false` | 68e6afb |
+| AC-5 | T1–T5, T10, T11, T14, T15 | `TestCrawler_Run_MaxPages/cap_holds_with_concurrent_workers`, `/failed_fetch_does_not_count`, `TestCrawlStore_UpdateResult/limit_reached_true_persisted`, `TestHandler_GetCrawl/limit_reached_true_returned`, manual Postgres check | 401c11e, 68e6afb, 540865c |
+| AC-6 | T1–T5, T11, T14, T15 | `TestCrawler_Run_MaxPages/exact_page_count_reports_false`, `/seed_fetch_fails_reports_false`, `TestCrawlStore_UpdateResult/saved_crawl_reads_false`, `TestHandler_GetCrawl/limit_reached_false_always_present` | 401c11e, 68e6afb, 540865c |
+| AC-7 | T10 | `TestCrawler_Run_MaxPages_OtherCrawlsContinue` | 68e6afb |
+| AC-8 | T16, T17, T18 | `TestParseMaxPages` (rejected rows), manual AC-8 check | 1290c37 |
+| AC-9 | T6, T13 | `make race` (includes `cap_holds_with_concurrent_workers`) | 68e6afb |
+| NFR-1 | T12 | `TestCrawler_Run_MaxPages_LogsOnce` | 68e6afb |
+| NFR-2 | T19 | review of `.env.example` | 1290c37 |
+| NFR-3 | T6, T7 | existing `TestCrawler_*`, `TestHandler_*`, `TestCrawlStore_*` with unchanged status/visits assertions | 68e6afb |
+| NFR-4 | T12 | review: no new goroutine, or a documented exit; `make race` | 68e6afb |
 
 ## 5. Execution
 

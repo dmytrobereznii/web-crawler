@@ -1,6 +1,6 @@
 # Spec: Maximum pages per crawl
 Spec ID: SPEC-01
-Status: approved
+Status: implemented
 Supersedes: —
 
 ## Problem and user
